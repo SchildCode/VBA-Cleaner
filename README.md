@@ -2,7 +2,7 @@
 Macro code cleaner for Excel workbooks - Reduce file-bloat and improve portability &amp; reliability
 This is a modern, free alternative to legacy “CodeCleaner” utilities. Works on 32/64-bit Office, no VBIDE reference required (late binding), handles mixed-locale CodeNames (`Sheet1`/`Ark1`), avoids `VERSION/Attribute` clutter in document modules, and can avoids issues with OneDrive/SharePoint file paths.
 
-## When does one need to “clean” a Visual Basic for Applications (VBA) enabled Microsoft Excel workbook?
+## When/why should you "clean" a Visual Basic for Applications (VBA) enabled Microsoft Excel workbook?
 
 VBA projects can accumulate 'cruft' (accumulated unnecessary leftovers, stale settings, old artifacts) that can bloat the file size, and odd behavior (such as compilation errors) when other users open your file. Here are some examples:
 

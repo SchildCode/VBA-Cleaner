@@ -127,8 +127,7 @@ Two tools are included in the same VBA module:
 
 ## Requirements & Safety
 
-* The code requires that you first set Excel `Options` → `Trust Center` → `Trust Center Settings…` → `Macro Settings` → check `Trust access to the VBA project object model`. The macros check this automatically, and inform you when necessary.
-* Unlock any password-protected project before running.
+* Remember that VBA_DeepClean resets global VBProject settings such as password-protection, compilation constants, and references. You need to manually set these after cleaning. VBA_Cleaner does not have this limitation.
 * This repositry is provided without warranty of any kind. To be sure, take backups.
 
 ---

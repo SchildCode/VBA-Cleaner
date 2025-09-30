@@ -103,7 +103,7 @@ Two tools are included in the same VBA module:
 5. The tool exports, rebuilds into a new workbook, saves and closes it without p-code.
 6. If necessary re-set any project password, project name, and references you need.
 
-### Exactly what happens udner to hood of VBA_DeepClean?
+### Exactly what happens under to hood of VBA_DeepClean?
 
 * Exports everything!
 * Creates a destination by `firstSheet.Copy` to a new workbook (no placeholder sheet), then copies remaining sheets/charts back.

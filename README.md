@@ -65,7 +65,7 @@ Two tools are included in the same VBA module:
 ### How to use VBA_Cleaner:
 
 1. Open the workbook you want to clean (unlock the VBProject if it is password-protected).
-2. Run macro `VBA_Cleaner`, e.g. by pressing keys ALT+F8.
+2. Run macro `VBA_Cleaner`, e.g. by pressing keys ALT+F8. It doesn't matter which workbook has focus when you do this.
 3. Pick the project (or press Enter for the active one).
 4. It runs in-place on the open workbook, and shows a success message.
 
@@ -96,7 +96,7 @@ Two tools are included in the same VBA module:
 ### How to use VBA_DeepClean:
 
 1. Open the source workbook (unlock VBProject if it is password-protected)
-2. Run macro `VBA_DeepClean`, e.g. by pressing keys ALT+F8.
+2. Run macro `VBA_DeepClean`, e.g. by pressing keys ALT+F8. It doesn't matter which workbook has focus when you do this.
 3. Pick the workbook to deep-clean, in the dialog window that appears.
 4. Select file name to save, in the SaveAs file browser that appears. By default the file name is appended with '_DeepClean.xlsm' 
 5. The tool exports, rebuilds into a **new** workbook, **saves and closes** it without p-code.

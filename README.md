@@ -27,6 +27,7 @@ VBA projects can accumulate 'cruft' (accumulated unnecessary leftovers, stale se
   * **Chart caches / Slicer caches**: redundant cache data after edits.
   * **Shared strings (xlsx)**: very large `sharedStrings.xml` due to past content.
 
+
 ---
 
 ## What’s included in this repositry?
@@ -42,6 +43,7 @@ Two tools are included in the same VBA module:
 * Run **VBA_Cleanser** when you want a fast rebuild of the VBA project to remove stale p-code/stream fragmentation without losing any global VBA-project settings or touching the workbook container.
 * Run **DeepClean** on bloated files, to minimize file size when the workbook feels “heavy”, or behaves strangely and wish to improve reliability by refreshing both the VBA project and the workbook container.
 * Run **DeepClean** on inherited files, or before distributing to others, to clear incompatible p-code, and to facilitate a clean code-compilation.
+
 
 ---
 
@@ -70,7 +72,8 @@ Two tools are included in the same VBA module:
 * Exports every component from the workbook to a temp. folder, but keeps the workbook itself (ant all its global settings) as an empty shell.
 * Removes **non-document** components, then imports them back.
 * For **document** components, does not delete them (ensuring that important workbook settings are not lost), but the code modeule is deleted, and replaced with clean code.
-* 
+
+
 ---
 
 ## 2) **VBA_DeepClean** (Whole workbook rebuild)
@@ -105,6 +108,7 @@ Two tools are included in the same VBA module:
 * For `ThisWorkbook` and each tab (worksheet or chart) strips and re-imports all source code.
 * Finally saves to a **local path** (OneDrive/SharePoint URL → local mirror), the closes file without compiling p-code.
  
+
 ---
 
 ## Known limitations

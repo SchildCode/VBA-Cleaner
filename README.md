@@ -138,5 +138,3 @@ Two tools are included in the same VBA module:
 * Inspired by Rob Bovey’s canonical **VBA Code Cleaner** tool (RIP that 32-bit limitation).
 * This project is original work, designed for 32/64-bit Office with late binding.
 * Lisence: MIT (simple & permissive)
-
-if you want, i can also generate a **short CHANGELOG**, a **CONTRIBUTING.md** (with guidance on PRs and common test cases), and a sample **demo workbook** you can include for users to test the tools on.

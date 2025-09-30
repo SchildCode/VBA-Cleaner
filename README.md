@@ -43,7 +43,7 @@ Two tools are included in the same VBA module:
   * Exports all components to temp.
   * Removes **non-document** components (Std modules, Classes, Forms) and re-imports them fresh (forms bring their `.frx`).
   * For **document modules** (`ThisWorkbook`, sheet/chartsheet modules), it **clears all lines** and **re-inserts only the code body** from the exported `.cls` (strips `VERSION/BEGIN…End` and `Attribute` lines so they don’t appear in the code window).
-* **What it doesn’t do:** Change Tools→References, project password, name, or compile settings.
+  * It doesn't meddle with global VBA-project settings such as Tools→References, project password, name, or compile settings.
 
 **Use when:** you want a fast rebuild of the VBA project to remove stale p-code/stream fragmentation **without** touching the workbook container.
 
@@ -57,17 +57,13 @@ Two tools are included in the same VBA module:
 
 * **Scope:** An **open workbook** (selected from a dialog picker).
 * **What it does:**
-
   * Exports all components from source.
   * **Creates the destination by copying the first sheet to a new workbook** (prevents CodeName renumbering), then copies remaining sheets and chartsheets.
   * Imports **non-document** components.
   * For **document modules**, injects **only** the code body (header/attribute lines stripped) into the matching destination modules, matched by **tab name** → destination CodeName (robust across locales and renumbering).
   * Saves to a **local path** (auto-maps SharePoint/OneDrive URLs to local mirrors or falls back to `%TEMP%`) and **closes** the new file so your users can manually open it and trigger `Workbook_Open`/`Auto_Open`.
-* **What it changes by design:**
-
   * You get a **fresh workbook container**. That incidentally clears many forms of workbook bloat and odd metadata.
-
-**Use when:** the workbook feels “heavy”, behaves strangely, or you want a truly fresh container while retaining all code and sheets.
+   
 
 | Pros | Cons |
 | ---- | ---- | 
@@ -75,20 +71,11 @@ Two tools are included in the same VBA module:
 
 ---
 
-## When to use which
+## When to use which?
 
 * Run **VBA Cleaner** occasionally during development to keep p-code/source aligned and reduce mysterious compile issues.
-* Run **DeepClean** on bloated files, to minimize file size and improve reliability by refreshing both the VBA project and the workbook container.
+* Run **DeepClean** on bloated files, to minimize file size when the workbook feels “heavy”, or behaves strangely and wish to improve reliability by refreshing both the VBA project and the workbook container.
 * Run **DeepClean** on inherited files, or before distributing to others, to clear incompatible p-code, and to facilitate a clean code-compilation.
-
-
----
-
-## Requirements & Safety
-
-* The code requires that you first set Excel **Options → Trust Center → Trust Center Settings… → Macro Settings →** check **“Trust access to the VBA project object model.”**
-* Unlock any password-protected project before running.
-* Document module code is inserted with `AddFromString` after stripping header/attribute lines to avoid “`VERSION 1.0 CLASS …`” showing in the editor.
 
 ---
 
@@ -110,10 +97,9 @@ Two tools are included in the same VBA module:
 5. The tool exports, rebuilds into a **new** workbook, **saves and closes** it without p-code.
 6. If necessary re-set any **project password**, **project name**, and **references** you need.
 
-
 ---
 
-## What exactly happens under the hood
+## What exactly happens under the hood?
 
 ### 1) VBA_Cleaner
 
@@ -128,7 +114,7 @@ Two tools are included in the same VBA module:
 * Imports non-document components back.
 * For `ThisWorkbook` and each tab (worksheet or chart) strips and re-imports all source code.
 * Finally saves to a **local path** (OneDrive/SharePoint URL → local mirror), the closes file without compiling p-code.
-
+ 
 ---
 
 ## Known limitations
@@ -139,6 +125,15 @@ Two tools are included in the same VBA module:
 * Saving directly to a SharePoint **URL** is avoided on purpose; we save to local disk for reliability.
 * Do **not** use if you’re auditing a workbook under legal/forensic constraints where changing file hashes is undesirable.
 * Do **not** use DeepClean if you expect references to auto-migrate. Set them explicitly.
+
+---
+
+## Requirements & Safety
+
+* The code requires that you first set Excel **Options → Trust Center → Trust Center Settings… → Macro Settings →** check **“Trust access to the VBA project object model.”**. The macros check this automatically, and inform you when necessary.
+* Unlock any password-protected project before running.
+* Document module code is inserted with `AddFromString` after stripping header/attribute lines to avoid “`VERSION 1.0 CLASS …`” showing in the editor.
+* This repositry is provided without warranty of any kind. To be sure, take backups.
 
 ---
 

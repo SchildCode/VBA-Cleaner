@@ -33,8 +33,8 @@ VBA projects can accumulate 'cruft' (accumulated unnecessary leftovers, stale se
 
 Two tools are included in the same VBA module:
 
-* 1) **"VBA_Cleaner"**: cleans an open VBA project **rebuilds modules from clean source** so p-code regenerates. 
-* 2) **"VBA_DeepClean"**: goes further than VBA_Cleaner; it rebuilds the **workbook container** too, and saves the file without p-code, improving file portability.
+1. **"VBA_Cleaner"**: cleans an open VBA project **rebuilds modules from clean source** so p-code regenerates. 
+2. **"VBA_DeepClean"**: goes further than VBA_Cleaner; it rebuilds the **workbook container** too, and saves the file without p-code, improving file portability.
 
 ### 1) Basic **VBA_Cleaner** (p-code cleaner)
 

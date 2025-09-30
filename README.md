@@ -74,7 +74,7 @@ Two tools are included in the same VBA module:
 
 * Exports every component from the workbook to a temp. folder, but keeps the workbook itself (ant all its global settings) as an empty shell.
 * Removes non-document components, then imports them back.
-* For document components, does not delete them (ensuring that important workbook settings are not lost), but the code modeule is deleted, and replaced with clean code.
+* For document components, does not delete them (ensuring that important workbook settings are not lost), but the code module is cleared, and the cleaned source-code is re-inserted.
 <br>
 
 ---
@@ -108,7 +108,7 @@ Two tools are included in the same VBA module:
 * Exports everything!
 * Creates a destination by `firstSheet.Copy` to a new workbook (no placeholder sheet), then copies remaining sheets/charts back.
 * Imports non-document components back.
-* For `ThisWorkbook` and each tab (worksheet or chart) strips and re-imports all source code.
+* For `ThisWorkbook` and each tab (worksheet or chart) strips and re-imports all source code. Document module code is re-inserted with `AddFromString` after stripping header/attribute lines to avoid “`VERSION 1.0 CLASS …`” showing in the editor.
 * Finally saves to a local path (OneDrive/SharePoint URL → local mirror), the closes file without compiling p-code.
 <br>
 
@@ -129,7 +129,6 @@ Two tools are included in the same VBA module:
 
 * The code requires that you first set Excel `Options` → `Trust Center` → `Trust Center Settings…` → `Macro Settings` → check `Trust access to the VBA project object model`. The macros check this automatically, and inform you when necessary.
 * Unlock any password-protected project before running.
-* Document module code is inserted with `AddFromString` after stripping header/attribute lines to avoid “`VERSION 1.0 CLASS …`” showing in the editor.
 * This repositry is provided without warranty of any kind. To be sure, take backups.
 
 ---

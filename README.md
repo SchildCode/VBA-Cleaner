@@ -101,7 +101,7 @@ Two tools are included in the same VBA module:
 3. Pick the workbook to deep-clean, in the dialog window that appears.
 4. Select file name to save, in the SaveAs file browser that appears. By default the file name is appended with '_DeepClean.xlsm' 
 5. The tool exports, rebuilds into a new workbook, saves and closes it without p-code.
-6. If necessary re-set any project password, project name, and references you need.
+6. If necessary re-set any project password, project name, and references you need. Note that these edits may lead to p-code being compiled and stored in the file.
 
 ### Exactly what happens under to hood of VBA_DeepClean?
 

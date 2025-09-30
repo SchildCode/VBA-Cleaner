@@ -47,16 +47,9 @@ Two tools are included in the same VBA module:
 
 **Use when:** you want a fast rebuild of the VBA project to remove stale p-code/stream fragmentation **without** touching the workbook container.
 
-**Pros**
-
-* Fast, safe, in-place.
-* Retains project password and references.
-* Keeps workbook intact (names, styles, etc).
-
-**Cons**
-
-* Doesn’t fix workbook/container bloat.
-* If forms are extremely large, you’ll still carry their `.frx` content (though exported/imported cleanly).
+| **Pros** | **Cons** |
+| -------- | -------- |
+| <ul><li>Fast, safe, in-place.</li><li>Retains project password and references.</li><li>Keeps workbook intact (names, styles, etc).</li></ul> | <ul><li>Doesn’t fix workbook/container bloat.</li><li>If forms are extremely large, you’ll still carry their `.frx` content (though exported/imported cleanly).</li></ul> |
 
 ---
 
@@ -78,11 +71,8 @@ Two tools are included in the same VBA module:
 
 | Pros | Cons |
 | ---- | ---- | 
-| <ul><li>Cleans both **VBA streams** and **workbook container**.</li><li>Robust matching of sheet/chartsheet code in mixed locales (`Ark1`/`Sheet1`) and after renumbering.</li><li>Avoids `VERSION/Attribute` junk in code windows.</li></ul> | <ul><li>**Project password is cleared** (destination VBProject has no password; set it again if needed).</li><li>**Project name, conditional compilation args, and some project-level settings** (Break on Unhandled Errors, etc.) revert to defaults in the destination.</li><li>Tools→References **are not cloned**; they remain whatever Excel assigns by default for the new file. Re-set custom references if you had them.</li><li>Breakpoints, watches, code pane positions aren’t preserved (VBE limitations).</li><li>Copies sheets “as is”: if your workbook had excessive styles, hidden names, etc., many are mitigated by the new container, but sheet-local cruft (e.g., wildly expanded UsedRange) may persist unless you reset it separately.</li></ul> | 
+| <ul><li>Cleans all both **VBA streams**, UserForms’ `.frx` binaries, and **workbook container**, reducing file size, and improving reliability.</li><li>Saves the file without p-code, improving portability</li><li>Robust matching of sheet/chartsheet code in mixed international locales (`Ark1`/`Sheet1`) and after renumbering.</li><li>Avoids `VERSION/Attribute` junk in code windows.</li><li>Uses **late binding** (no VBIDE reference needed)</ul></ul> | <ul><li>**Project password is cleared** (destination VBProject has no password; set it again if needed).</li><li>**Project name, conditional compilation args, and some project-level settings** (Break on Unhandled Errors, etc.) revert to defaults in the destination.</li><li>Tools→References **are not cloned**; they remain whatever Excel assigns by default for the new file. Re-set custom references if you had them.</li><li>Breakpoints, watches, code pane positions aren’t preserved (VBE limitations).</li><li>Copies sheets “as is”: if your workbook had excessive styles, hidden names, etc., many are mitigated by the new container, but sheet-local cruft (e.g., wildly expanded UsedRange) may persist unless you reset it separately.</li></ul> | 
 
-* **After DeepClean:** re-set any **project password**, **project name**, and **references** you need.
-* * Both tools use **late binding** (no VBIDE reference needed).
-  * * UserForms’ `.frx` binaries are exported/imported automatically.
 ---
 
 ## When to use which
@@ -118,6 +108,7 @@ Two tools are included in the same VBA module:
 3. Pick the workbook to deep-clean, in the dialog window that appears.
 4. Select file name to save, in the SaveAs file browser that appears. By default the file name is appended with '_DeepClean.xlsm' 
 5. The tool exports, rebuilds into a **new** workbook, **saves and closes** it without p-code.
+6. If necessary re-set any **project password**, **project name**, and **references** you need.
 
 
 ---

@@ -52,20 +52,20 @@ Two tools are included in the same VBA module:
 
 ## 1) Basic **VBA_Cleaner** (p-code cleaner)
 
-* **Scope:** Only the VBProject in an open workbook (you select which open workbook from a dialogue list).
+* **Scope:** Only the VBAProject in an open workbook (you select which open workbook from a dialogue list).
 * **What it does:**
   * Exports all components to temp. files.
   * Removes non-document components (Std modules, Classes, Forms) and re-imports them fresh (forms bring their `.frx`).
   * For document modules (`ThisWorkbook`, sheet/chartsheet modules), it clears all source-code and re-inserts only the code body from the exported `.cls` (strips `VERSION/BEGIN…End` and `Attribute` lines so they don’t appear in the code window).
-  * It doesn't meddle with global VBA-project settings such as Tools→References, project password, name, or compile settings.
+  * It doesn't meddle with global VBA-project settings such as Tools→References, project password, project name, or conditional compilation constants.
 
 | **Pros** | **Cons** |
 | -------- | -------- |
-| <ul><li>Fast and in-place (i.e. acts on an open workbook).</li><li>Retains all VBA-project settings such as project password and references.</li><li>Keeps workbook intact (names, styles, etc).</li></ul> | <ul><li>Doesn’t fix workbook/container bloat.</li><li>If forms are extremely large, you’ll still carry their `.frx` content (though exported/imported cleanly).</li></ul> |
+| <ul><li>Fast and in-place (i.e. acts on an open workbook).</li><li>Retains all VBAProject settings such as VBA project password, conditional compilation arguments, and references.</li><li>Keeps all macro controls intact, e.g. macro buttons, macro keyboard shortcuts</li><li>Keeps workbook intact (names, styles, etc).</li><li>The file extension is kept unchanged, i.e. .xlsm, .xlsb, or .xltm</li></ul> | <ul><li>Doesn’t fix workbook/container bloat.</li><li>If forms are extremely large, you’ll still carry their `.frx` content (though exported/imported cleanly).</li></ul> |
 
 ### How to use VBA_Cleaner:
 
-1. Open the workbook you want to clean (unlock the VBProject if it is password-protected).
+1. Open the workbook you want to clean (unlock the VBAProject if it is password-protected).
 2. Run macro `VBA_Cleaner`, e.g. by pressing keys ALT+F8. It doesn't matter which workbook has focus when you do this.
 3. Pick the project (or press Enter for the active one).
 4. It runs in-place on the open workbook, and shows a success message.
@@ -92,16 +92,16 @@ Two tools are included in the same VBA module:
  
 | Pros | Cons |
 | ---- | ---- | 
-| <ul><li>Cleans all both VBA streams, UserForms’ `.frx` binaries, and workbook container, reducing file size, and improving reliability.</li><li>Saves the file without p-code, improving portability</li><li>Robust matching of sheet/chartsheet code in mixed international locales (`Ark1`/`Sheet1`) and after renumbering.</li><li>Avoids `VERSION/Attribute` junk in code windows.</li><li>Uses late binding (no VBIDE reference needed)</ul></ul> | <ul><li>Project password is cleared (destination VBProject has no password; set it again if needed).</li><li>Project name, conditional compilation args, and some project-level settings (Break on Unhandled Errors, etc.) revert to defaults in the destination.</li><li>Tools→References are not cloned; they remain whatever Excel assigns by default for the new file. Re-set custom references if you had them.</li><li>Breakpoints, watches, code pane positions aren’t preserved (VBE limitations).</li><li>Copies sheets “as is”: if your workbook had excessive styles, hidden names, etc., many are mitigated by the new container, but sheet-local cruft (e.g., wildly expanded UsedRange) may persist unless you reset it separately.</li></ul> | 
+| <ul><li>Cleans all both VBA streams, UserForms’ `.frx` binaries, and workbook container, reducing file size, and improving reliability.</li><li>Saves the file without p-code, improving portability</li><li>Robust matching of sheet/chartsheet code in mixed international locales (`Ark1`/`Sheet1`) and after renumbering.</li><li>Avoids `VERSION/Attribute` junk in code windows.</li><li>Uses late binding (no VBIDE reference needed)</li><li>Keeps all macro controls intact, e.g. macro buttons, macro keyboard shortcuts</li></ul> | <ul><li>Project password is cleared (destination VBAProject has no password; set it again if needed).</li><li>Project name, conditional compilation args, and some project-level settings (Break on Unhandled Errors, etc.) revert to defaults in the destination.</li><li>Tools→References are not cloned; they remain whatever Excel assigns by default for the new file. Re-set custom references if you had them.</li><li>Breakpoints, watches, code pane positions aren’t preserved (VBE limitations).</li><li>Copies sheets “as is”: if your workbook had excessive styles, hidden names, etc., many are mitigated by the new container, but sheet-local cruft (e.g., wildly expanded UsedRange) may persist unless you reset it separately.</li></ul> | 
 
 ### How to use VBA_DeepClean:
 
-1. Open the source workbook (unlock VBProject if it is password-protected)
+1. Open the source workbook (unlock VBAProject if it is password-protected)
 2. Run macro `VBA_DeepClean`, e.g. by pressing keys ALT+F8. It doesn't matter which workbook has focus when you do this.
 3. Pick the workbook to deep-clean, in the dialog window that appears.
 4. Select file name to save, in the SaveAs file browser that appears. By default the file name is appended with '_DeepClean.xlsm' 
 5. The tool exports, rebuilds into a new workbook, saves and closes it without p-code.
-6. If necessary re-set any project password, project name, and references you need. Note that these edits may lead to p-code being compiled and stored in the file.
+6. If necessary re-set the project password and conditional compilation constants in `Tools`→ `VBAProject Properties…` (the VBAProject name, and references are retained). Note that these edits may lead to p-code being compiled and stored in the file.
 
 ### Exactly what happens under to hood of VBA_DeepClean?
 
@@ -118,7 +118,7 @@ Two tools are included in the same VBA module:
 
 * Doesn’t “fix” broken Tools→References automatically (both tools). DeepClean’s new file may need custom references re-set.
 * Doesn’t clone VBE UI state (breakpoints/watches).
-* DeepClean resets VBProject password and project-level settings to defaults. If you rely on VBProject passwords or specific project names for external tooling—re-apply them after DeepClean or stick to the basic Cleaner.
+* DeepClean resets VBAProject password and project-level settings to defaults. If you rely on VBAProject passwords or specific project names for external tooling—re-apply them after DeepClean or stick to the basic Cleaner.
 * Saving directly to a SharePoint URL is avoided on purpose; we save to local disk for reliability.
 * Do **not** use if you’re auditing a workbook under legal/forensic constraints where changing file hashes is undesirable.
 * Do **not** use DeepClean if you expect references to auto-migrate. Set them explicitly.
@@ -127,7 +127,7 @@ Two tools are included in the same VBA module:
 
 ## Requirements & Safety
 
-* Remember that VBA_DeepClean resets global VBProject settings such as password-protection, compilation constants, and references. You need to manually set these after cleaning. VBA_Cleaner does not have this limitation.
+* Remember that VBA_DeepClean resets global VBAProject password-protection and compilation constants. You need to manually set these after cleaning. VBA_Cleaner does not have this limitation.
 * This repositry is provided without warranty of any kind. To be sure, take backups.
 
 ---

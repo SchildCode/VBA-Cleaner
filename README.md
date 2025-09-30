@@ -6,14 +6,14 @@ This is a free alternative to legacy “CodeCleaner” utilities. It works on 32
 
 VBA projects can accumulate 'cruft' (accumulated unnecessary leftovers, stale settings, old artifacts) that can bloat the file size, and odd behavior (such as compilation errors) when other users open your file. Here are some examples:
 
-* **Stale compiled p-code**: the compiled stream inside modules can desync from source across Office versions or after heavy edits. VBA stores **source code** *and* compiled **p-code** inside the project. That p-code is **not guaranteed portable** across environments. Symptoms of incompatible p-code: odd compile/runtime errors, “Can’t find project or library,” or just flaky behavior that disappears after **Debug → Compile VBAProject**. You’ll need a recompile when, for example:
+* **Stale compiled p-code**: the compiled stream inside modules can desync from source across Office versions or after heavy edits. VBA stores source code *and* compiled p-code inside the project. That p-code is not guaranteed portable across environments. Symptoms of incompatible p-code: odd compile/runtime errors, “Can’t find project or library,” or just flaky behavior that disappears after Debug → Compile VBAProject. You’ll need a recompile when, for example:
   * **Office/VBA runtime version changes** (e.g., opening a workbook compiled under Office X in Office Y).
   * **Different host/type library versions** (e.g., Excel/Word versions; or changing references—ADO 2.8 vs 6.1, different GUIDs/versions).
   * **32-bit vs 64-bit Office** (especially if `PtrSafe`/Declare signatures differ or API calls change).
   * **Locale/encoding & build differences** (rare, but it happens).
   * **Conditional compilation args** or project options change.
-* **Fragmented module streams**: lots of edits can bloat text streams; forms may carry large, outdated `.frx` payloads. Each user-designed form has a **binary companion file** with the same base name and the extension **`.frx`**. That `.frx` holds the **binary resources** for the form: embedded images, control property blobs (fonts, colors, serialized states), icon handles, etc. In the workbook itself, those resources live inside the file; the `.frx` appears only when you **export** a form.
-* **Workbook container cruft** (separate from VBA): orphaned names/styles, bloated UsedRange, old PivotCaches/QueryTables, OLE caches, etc. None of this is *inherently* bad; it’s the **excess, duplication, or orphaning** that hurts. A DeepClean (copy sheets to a new workbook) plus hygiene passes (reset UsedRange, prune styles/names, remove unused connections) typically trims most of it. Examples:
+* **Fragmented module streams**: lots of edits can bloat text streams; forms may carry large, outdated `.frx` payloads. Each user-designed form has a binary companion file with the same base name and the extension `.frx`. That `.frx` holds the binary resources for the form: embedded images, control property blobs (fonts, colors, serialized states), icon handles, etc. In the workbook itself, those resources live inside the file; the `.frx` appears only when you export a form.
+* **Workbook container cruft** (separate from VBA): orphaned names/styles, bloated UsedRange, old PivotCaches/QueryTables, OLE caches, etc. None of this is *inherently* bad; it’s the excess, duplication, or orphaning that hurts. A DeepClean (copy sheets to a new workbook) plus hygiene passes (reset UsedRange, prune styles/names, remove unused connections) typically trims most of it. Examples:
   * **Defined Names**: hidden or orphaned names; names with `#REF!`; thousands of stray names imported from other files.
   * **Styles**: style explosion (hundreds/thousands of “Normal 2”, “Normal 3”, …).
   * **UsedRange bloat**: Excel thinks a sheet spans to row 1,048,576 because a cell was once touched; inflates file size.
@@ -34,8 +34,8 @@ VBA projects can accumulate 'cruft' (accumulated unnecessary leftovers, stale se
 
 Two tools are included in the same VBA module:
 
-1. **"VBA_Cleaner"**: cleans an open VBA project **rebuilds modules from clean source** so p-code regenerates. 
-2. **"VBA_DeepClean"**: goes further than VBA_Cleaner; it rebuilds the **workbook container** too, and saves the file without p-code, improving file portability.
+1. **"VBA_Cleaner"**: cleans an open VBA project rebuilds VBA-modules from clean source, so p-code regenerates. 
+2. **"VBA_DeepClean"**: goes further than VBA_Cleaner; it rebuilds the workbook container too, and saves the file without p-code, improving file portability.
 
 ## When to use which?
 
@@ -51,11 +51,11 @@ Two tools are included in the same VBA module:
 
 ## 1) Basic **VBA_Cleaner** (p-code cleaner)
 
-* **Scope:** Current/open VBProject only.
+* **Scope:** Only the VBProject in an open workbook (you select which open workbook from a dialogue list).
 * **What it does:**
-  * Exports all components to temp.
-  * Removes **non-document** components (Std modules, Classes, Forms) and re-imports them fresh (forms bring their `.frx`).
-  * For **document modules** (`ThisWorkbook`, sheet/chartsheet modules), it **clears all lines** and **re-inserts only the code body** from the exported `.cls` (strips `VERSION/BEGIN…End` and `Attribute` lines so they don’t appear in the code window).
+  * Exports all components to temp. files.
+  * Removes non-document components (Std modules, Classes, Forms) and re-imports them fresh (forms bring their `.frx`).
+  * For document modules (`ThisWorkbook`, sheet/chartsheet modules), it clears all source-code and re-inserts only the code body from the exported `.cls` (strips `VERSION/BEGIN…End` and `Attribute` lines so they don’t appear in the code window).
   * It doesn't meddle with global VBA-project settings such as Tools→References, project password, name, or compile settings.
 
 | **Pros** | **Cons** |
@@ -64,7 +64,7 @@ Two tools are included in the same VBA module:
 
 ### How to use VBA_Cleaner:
 
-1. Open the workbook / VBProject you want to clean (unlock VBProject if it is password-protected).
+1. Open the workbook you want to clean (unlock the VBProject if it is password-protected).
 2. Run macro `VBA_Cleaner`, e.g. via ALT+F8.
 3. Pick the project (or press Enter for the active one).
 4. It runs in-place on the open workbook, and shows a success message.
@@ -72,15 +72,15 @@ Two tools are included in the same VBA module:
 ### What exactly happens under the hood of VBA_Cleaner?
 
 * Exports every component from the workbook to a temp. folder, but keeps the workbook itself (ant all its global settings) as an empty shell.
-* Removes **non-document** components, then imports them back.
-* For **document** components, does not delete them (ensuring that important workbook settings are not lost), but the code modeule is deleted, and replaced with clean code.
+* Removes non-document components, then imports them back.
+* For document components, does not delete them (ensuring that important workbook settings are not lost), but the code modeule is deleted, and replaced with clean code.
 <br>
 
 ---
 
 ## 2) **VBA_DeepClean** (Whole workbook rebuild)
 
-* **Scope:** An **open workbook** (selected from a dialog picker).
+* **Scope:** An open workbook (you select which open workbook from a dialogue list).
 * **What it does:**
   * Exports all components from source.
   * **Creates the destination by copying the first sheet to a new workbook** (prevents CodeName renumbering), then copies remaining sheets and chartsheets.
@@ -135,6 +135,6 @@ Two tools are included in the same VBA module:
 
 ## Credits & license
 
-* Inspired by Rob Bovey’s canonical [**Excel VBA Code Cleaner** tool](http://www.appspro.com/Utilities/CodeCleaner.htm), for which a 64-bit version was not developed.
+* Inspired by Rob Bovey’s canonical [Excel VBA Code Cleaner tool](http://www.appspro.com/Utilities/CodeCleaner.htm), for which a 64-bit version was not developed.
 * This project is original work, designed for 32/64-bit Office with late binding.
 * Lisence: MIT (simple & permissive)

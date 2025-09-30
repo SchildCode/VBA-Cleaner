@@ -139,3 +139,4 @@ Two tools are included in the same VBA module:
 * Inspired by Rob Bovey’s canonical [Excel VBA Code Cleaner tool](http://www.appspro.com/Utilities/CodeCleaner.htm), for which a 64-bit version was not developed.
 * This project is original work, designed for 32/64-bit Office with late binding.
 * Lisence: MIT (simple & permissive)
+* Author: Peter.Schild@OsloMet.no

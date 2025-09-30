@@ -84,15 +84,15 @@ Two tools are included in the same VBA module:
 * **Scope:** An open workbook (you select which open workbook from a dialogue list).
 * **What it does:**
   * Exports all components from source.
-  * **Creates the destination by copying the first sheet to a new workbook** (prevents CodeName renumbering), then copies remaining sheets and chartsheets.
-  * Imports **non-document** components.
-  * For **document modules**, injects **only** the code body (header/attribute lines stripped) into the matching destination modules, matched by **tab name** → destination CodeName (robust across locales and renumbering).
-  * Saves to a **local path** (auto-maps SharePoint/OneDrive URLs to local mirrors or falls back to `%TEMP%`) and **closes** the new file so your users can manually open it and trigger `Workbook_Open`/`Auto_Open`.
-  * You get a **fresh workbook container**. That incidentally clears many forms of workbook bloat and odd metadata.
+  * Creates the destination by copying the first sheet to a new workbook (this prevents CodeName renumbering), then copies remaining sheets and chartsheets.
+  * Imports non-document components.
+  * For document modules, injects only the code body (header/attribute lines stripped) into the matching destination modules, matched by tab name → destination CodeName (robust across locales and renumbering).
+  * Saves to a local path (catches SharePoint/OneDrive URLs) and closes the new file so your users can manually open it and trigger `Workbook_Open`/`Auto_Open`.
+  * You get a fresh workbook container. That incidentally clears many forms of workbook bloat and odd metadata.
  
 | Pros | Cons |
 | ---- | ---- | 
-| <ul><li>Cleans all both **VBA streams**, UserForms’ `.frx` binaries, and **workbook container**, reducing file size, and improving reliability.</li><li>Saves the file without p-code, improving portability</li><li>Robust matching of sheet/chartsheet code in mixed international locales (`Ark1`/`Sheet1`) and after renumbering.</li><li>Avoids `VERSION/Attribute` junk in code windows.</li><li>Uses **late binding** (no VBIDE reference needed)</ul></ul> | <ul><li>**Project password is cleared** (destination VBProject has no password; set it again if needed).</li><li>**Project name, conditional compilation args, and some project-level settings** (Break on Unhandled Errors, etc.) revert to defaults in the destination.</li><li>Tools→References **are not cloned**; they remain whatever Excel assigns by default for the new file. Re-set custom references if you had them.</li><li>Breakpoints, watches, code pane positions aren’t preserved (VBE limitations).</li><li>Copies sheets “as is”: if your workbook had excessive styles, hidden names, etc., many are mitigated by the new container, but sheet-local cruft (e.g., wildly expanded UsedRange) may persist unless you reset it separately.</li></ul> | 
+| <ul><li>Cleans all both VBA streams, UserForms’ `.frx` binaries, and workbook container, reducing file size, and improving reliability.</li><li>Saves the file without p-code, improving portability</li><li>Robust matching of sheet/chartsheet code in mixed international locales (`Ark1`/`Sheet1`) and after renumbering.</li><li>Avoids `VERSION/Attribute` junk in code windows.</li><li>Uses late binding (no VBIDE reference needed)</ul></ul> | <ul><li>Project password is cleared (destination VBProject has no password; set it again if needed).</li><li>Project name, conditional compilation args, and some project-level settings (Break on Unhandled Errors, etc.) revert to defaults in the destination.</li><li>Tools→References are not cloned; they remain whatever Excel assigns by default for the new file. Re-set custom references if you had them.</li><li>Breakpoints, watches, code pane positions aren’t preserved (VBE limitations).</li><li>Copies sheets “as is”: if your workbook had excessive styles, hidden names, etc., many are mitigated by the new container, but sheet-local cruft (e.g., wildly expanded UsedRange) may persist unless you reset it separately.</li></ul> | 
 
 ### How to use VBA_DeepClean:
 
@@ -100,26 +100,26 @@ Two tools are included in the same VBA module:
 2. Run macro `VBA_DeepClean`, e.g. by pressing keys ALT+F8. It doesn't matter which workbook has focus when you do this.
 3. Pick the workbook to deep-clean, in the dialog window that appears.
 4. Select file name to save, in the SaveAs file browser that appears. By default the file name is appended with '_DeepClean.xlsm' 
-5. The tool exports, rebuilds into a **new** workbook, **saves and closes** it without p-code.
-6. If necessary re-set any **project password**, **project name**, and **references** you need.
+5. The tool exports, rebuilds into a new workbook, saves and closes it without p-code.
+6. If necessary re-set any project password, project name, and references you need.
 
 ### Exactly what happens udner to hood of VBA_DeepClean?
 
 * Exports everything!
-* Creates a destination by `firstSheet.Copy` to a **new workbook** (no placeholder sheet), then copies remaining sheets/charts back.
+* Creates a destination by `firstSheet.Copy` to a new workbook (no placeholder sheet), then copies remaining sheets/charts back.
 * Imports non-document components back.
 * For `ThisWorkbook` and each tab (worksheet or chart) strips and re-imports all source code.
-* Finally saves to a **local path** (OneDrive/SharePoint URL → local mirror), the closes file without compiling p-code.
+* Finally saves to a local path (OneDrive/SharePoint URL → local mirror), the closes file without compiling p-code.
 <br>
 
 ---
 
 ## Known limitations
 
-* Doesn’t “fix” broken **Tools→References** automatically (both tools). DeepClean’s new file may need custom references re-set.
-* Doesn’t clone **VBE UI state** (breakpoints/watches).
-* DeepClean resets **VBProject password** and **project-level settings** to defaults. If you rely on **VBProject passwords** or **specific project names** for external tooling—re-apply them after DeepClean or stick to the basic Cleaner.
-* Saving directly to a SharePoint **URL** is avoided on purpose; we save to local disk for reliability.
+* Doesn’t “fix” broken Tools→References automatically (both tools). DeepClean’s new file may need custom references re-set.
+* Doesn’t clone VBE UI state (breakpoints/watches).
+* DeepClean resets VBProject password and project-level settings to defaults. If you rely on VBProject passwords or specific project names for external tooling—re-apply them after DeepClean or stick to the basic Cleaner.
+* Saving directly to a SharePoint URL is avoided on purpose; we save to local disk for reliability.
 * Do **not** use if you’re auditing a workbook under legal/forensic constraints where changing file hashes is undesirable.
 * Do **not** use DeepClean if you expect references to auto-migrate. Set them explicitly.
 
@@ -127,7 +127,7 @@ Two tools are included in the same VBA module:
 
 ## Requirements & Safety
 
-* The code requires that you first set Excel **Options → Trust Center → Trust Center Settings… → Macro Settings →** check **“Trust access to the VBA project object model.”**. The macros check this automatically, and inform you when necessary.
+* The code requires that you first set Excel `Options` → `Trust Center` → `Trust Center Settings…` → `Macro Settings` → check `Trust access to the VBA project object model`. The macros check this automatically, and inform you when necessary.
 * Unlock any password-protected project before running.
 * Document module code is inserted with `AddFromString` after stripping header/attribute lines to avoid “`VERSION 1.0 CLASS …`” showing in the editor.
 * This repositry is provided without warranty of any kind. To be sure, take backups.

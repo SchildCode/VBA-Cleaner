@@ -40,11 +40,11 @@ Two tools are included in the same VBA module:
 ## When to use which?
 
 1. Run **VBA Cleaner**:
-  * occasionally during development to keep p-code/source aligned and reduce mysterious compile issues.
-  * when you want a fast rebuild of the VBA project to remove stale p-code/stream fragmentation without losing any global VBA-project settings or touching the workbook container.
+   * occasionally during development to keep p-code/source aligned and reduce mysterious compile issues.
+   * when you want a fast rebuild of the VBA project to remove stale p-code/stream fragmentation without losing any global VBA-project settings or touching the workbook container.
 2. Run **DeepClean**:
-  * on bloated files, to minimize file size when the workbook feels “heavy”, or behaves strangely and wish to improve reliability by refreshing both the VBA project and the workbook container.
-  * on inherited files, or before distributing to others, to clear incompatible p-code, and to facilitate a clean code-compilation.
+   * on bloated files, to minimize file size when the workbook feels “heavy”, or behaves strangely and wish to improve reliability by refreshing both the VBA project and the workbook container.
+   * on inherited files, or before distributing to others, to clear incompatible p-code, and to facilitate a clean code-compilation.
 <br>
 
 ---

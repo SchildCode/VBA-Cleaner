@@ -36,7 +36,16 @@ Two tools are included in the same VBA module:
 1. **"VBA_Cleaner"**: cleans an open VBA project **rebuilds modules from clean source** so p-code regenerates. 
 2. **"VBA_DeepClean"**: goes further than VBA_Cleaner; it rebuilds the **workbook container** too, and saves the file without p-code, improving file portability.
 
-### 1) Basic **VBA_Cleaner** (p-code cleaner)
+## When to use which?
+
+* Run **VBA Cleaner** occasionally during development to keep p-code/source aligned and reduce mysterious compile issues.
+* Run **VBA_Cleanser** when you want a fast rebuild of the VBA project to remove stale p-code/stream fragmentation without losing any global VBA-project settings or touching the workbook container.
+* Run **DeepClean** on bloated files, to minimize file size when the workbook feels “heavy”, or behaves strangely and wish to improve reliability by refreshing both the VBA project and the workbook container.
+* Run **DeepClean** on inherited files, or before distributing to others, to clear incompatible p-code, and to facilitate a clean code-compilation.
+
+---
+
+## 1) Basic **VBA_Cleaner** (p-code cleaner)
 
 * **Scope:** Current/open VBProject only.
 * **What it does:**
@@ -45,15 +54,26 @@ Two tools are included in the same VBA module:
   * For **document modules** (`ThisWorkbook`, sheet/chartsheet modules), it **clears all lines** and **re-inserts only the code body** from the exported `.cls` (strips `VERSION/BEGIN…End` and `Attribute` lines so they don’t appear in the code window).
   * It doesn't meddle with global VBA-project settings such as Tools→References, project password, name, or compile settings.
 
-**Use when:** you want a fast rebuild of the VBA project to remove stale p-code/stream fragmentation **without** touching the workbook container.
-
 | **Pros** | **Cons** |
 | -------- | -------- |
 | <ul><li>Fast and in-place (i.e. acts on an open workbook).</li><li>Retains all VBA-project settings such as project password and references.</li><li>Keeps workbook intact (names, styles, etc).</li></ul> | <ul><li>Doesn’t fix workbook/container bloat.</li><li>If forms are extremely large, you’ll still carry their `.frx` content (though exported/imported cleanly).</li></ul> |
 
+### How to use VBA_Cleaner:
+
+1. Open the workbook / VBProject you want to clean (unlock VBProject if it is password-protected).
+2. Run macro `VBA_Cleaner`, e.g. via ALT+F8.
+3. Pick the project (or press Enter for the active one).
+4. It runs in-place on the open workbook, and shows a success message.
+
+### What exactly happens under the hood of VBA_Cleaner?
+
+* Exports every component from the workbook to a temp. folder, but keeps the workbook itself (ant all its global settings) as an empty shell.
+* Removes **non-document** components, then imports them back.
+* For **document** components, does not delete them (ensuring that important workbook settings are not lost), but the code modeule is deleted, and replaced with clean code.
+* 
 ---
 
-### 2) **VBA_DeepClean** (Whole workbook rebuild)
+## 2) **VBA_DeepClean** (Whole workbook rebuild)
 
 * **Scope:** An **open workbook** (selected from a dialog picker).
 * **What it does:**
@@ -63,32 +83,12 @@ Two tools are included in the same VBA module:
   * For **document modules**, injects **only** the code body (header/attribute lines stripped) into the matching destination modules, matched by **tab name** → destination CodeName (robust across locales and renumbering).
   * Saves to a **local path** (auto-maps SharePoint/OneDrive URLs to local mirrors or falls back to `%TEMP%`) and **closes** the new file so your users can manually open it and trigger `Workbook_Open`/`Auto_Open`.
   * You get a **fresh workbook container**. That incidentally clears many forms of workbook bloat and odd metadata.
-   
-
+ 
 | Pros | Cons |
 | ---- | ---- | 
 | <ul><li>Cleans all both **VBA streams**, UserForms’ `.frx` binaries, and **workbook container**, reducing file size, and improving reliability.</li><li>Saves the file without p-code, improving portability</li><li>Robust matching of sheet/chartsheet code in mixed international locales (`Ark1`/`Sheet1`) and after renumbering.</li><li>Avoids `VERSION/Attribute` junk in code windows.</li><li>Uses **late binding** (no VBIDE reference needed)</ul></ul> | <ul><li>**Project password is cleared** (destination VBProject has no password; set it again if needed).</li><li>**Project name, conditional compilation args, and some project-level settings** (Break on Unhandled Errors, etc.) revert to defaults in the destination.</li><li>Tools→References **are not cloned**; they remain whatever Excel assigns by default for the new file. Re-set custom references if you had them.</li><li>Breakpoints, watches, code pane positions aren’t preserved (VBE limitations).</li><li>Copies sheets “as is”: if your workbook had excessive styles, hidden names, etc., many are mitigated by the new container, but sheet-local cruft (e.g., wildly expanded UsedRange) may persist unless you reset it separately.</li></ul> | 
 
----
-
-## When to use which?
-
-* Run **VBA Cleaner** occasionally during development to keep p-code/source aligned and reduce mysterious compile issues.
-* Run **DeepClean** on bloated files, to minimize file size when the workbook feels “heavy”, or behaves strangely and wish to improve reliability by refreshing both the VBA project and the workbook container.
-* Run **DeepClean** on inherited files, or before distributing to others, to clear incompatible p-code, and to facilitate a clean code-compilation.
-
----
-
-## Usage:
-
-### VBA_Cleaner
-
-1. Open the workbook / VBProject you want to clean (unlock VBProject if it is password-protected).
-2. Run macro `VBA_Cleaner`, e.g. via ALT+F8.
-3. Pick the project (or press Enter for the active one).
-4. It runs in-place on the open workbook, and shows a success message.
-
-### VBA_DeepClean
+### How to use VBA_DeepClean:
 
 1. Open the source workbook (unlock VBProject if it is password-protected)
 2. Run macro `VBA_DeepClean`, e.g. via ALT+F8.
@@ -97,17 +97,7 @@ Two tools are included in the same VBA module:
 5. The tool exports, rebuilds into a **new** workbook, **saves and closes** it without p-code.
 6. If necessary re-set any **project password**, **project name**, and **references** you need.
 
----
-
-## What exactly happens under the hood?
-
-### 1) VBA_Cleaner
-
-* Exports every component from the workbook to a temp. folder, but keeps the workbook itself (ant all its global settings) as an empty shell.
-* Removes **non-document** components, then imports them back.
-* For **document** components, does not delete them (ensuring that important workbook settings are not lost), but the code modeule is deleted, and replaced with clean code.
-
-### 2) VBA_DeepClean
+### Exactly what happens udner to hood of VBA_DeepClean?
 
 * Exports everything!
 * Creates a destination by `firstSheet.Copy` to a **new workbook** (no placeholder sheet), then copies remaining sheets/charts back.

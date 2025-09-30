@@ -49,7 +49,7 @@ Two tools are included in the same VBA module:
 
 | **Pros** | **Cons** |
 | -------- | -------- |
-| <ul><li>Fast, safe, in-place.</li><li>Retains project password and references.</li><li>Keeps workbook intact (names, styles, etc).</li></ul> | <ul><li>Doesn’t fix workbook/container bloat.</li><li>If forms are extremely large, you’ll still carry their `.frx` content (though exported/imported cleanly).</li></ul> |
+| <ul><li>Fast and in-place (i.e. acts on an open workbook).</li><li>Retains all VBA-project settings such as project password and references.</li><li>Keeps workbook intact (names, styles, etc).</li></ul> | <ul><li>Doesn’t fix workbook/container bloat.</li><li>If forms are extremely large, you’ll still carry their `.frx` content (though exported/imported cleanly).</li></ul> |
 
 ---
 

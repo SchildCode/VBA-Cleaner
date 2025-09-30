@@ -5,9 +5,9 @@ This is a tiny & free alternative to legacy “CodeCleaner” utilities. It does
 
 ## When/why should you "clean" a Visual Basic for Applications (VBA) enabled Microsoft Excel workbook?
 
-VBA projects can accumulate 'cruft' (accumulated unnecessary leftovers, stale settings, old artifacts) that can bloat the file size, and odd behavior (such as compilation errors) when other users open your file. Here are some examples:
+VBA projects can accumulate [cruft](https://en.wikipedia.org/wiki/Cruft) (accumulated unnecessary leftovers, stale settings, old artifacts) that can bloat the file size, and odd behavior (such as compilation errors) when other users open your file. Here are some examples:
 
-* **Stale compiled p-code**: the compiled stream inside modules can desync from source across Office versions or after heavy edits. VBA stores source code *and* compiled p-code inside the project. That p-code is not guaranteed portable across environments. Symptoms of incompatible p-code: odd compile/runtime errors, “Can’t find project or library,” or just flaky behavior that disappears after Debug → Compile VBAProject. You’ll need a recompile when, for example:
+* **Stale compiled p-code**: the compiled stream inside modules can desync from source across Office versions or after heavy edits. VBA stores source code *and* compiled [p-code](https://en.wikipedia.org/wiki/Bytecode) inside the project. That p-code is not guaranteed portable across environments. Symptoms of incompatible p-code: odd compile/runtime errors, “Can’t find project or library,” or just flaky behavior that disappears after Debug → Compile VBAProject. You’ll need a recompile when, for example:
   * **Office/VBA runtime version changes** (e.g., opening a workbook compiled under an earlier/later version of Office).
   * **Different host/type library versions** (e.g., Excel/Word versions; or changing references—ADO 2.8 vs 6.1, different GUIDs/versions).
   * **32-bit vs 64-bit Office** (especially if `PtrSafe`/Declare signatures differ or API calls change).

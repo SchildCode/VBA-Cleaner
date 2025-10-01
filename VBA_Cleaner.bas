@@ -16,6 +16,7 @@ Option Explicit
 '   - Uses late binding. No need to add Tools > References
 '   - It's recommended to take a backup of the file before running VBA-Cleaner on it
 '   - Preserves VBA-project password-protecion
+'   - Can clean both .xlsm and .xlsb files
 '
 '   2) VBA-DeepClean
 '   - Use VBA-DeepClean when file size stays huge after VBA-Cleaner, compilation glitches persist, or you inherit a workbook with years of cruft (names/styles/UsedRange issues)
@@ -27,6 +28,7 @@ Option Explicit
 '   - For ThisWorkbook (and any sheet modules if you prefer), clear code and AddFromFile to ensure a fresh code stream.
 '   - Saves the new workbook with suffix _DeepCleaned. Does not change the original file.
 '   - VBA-project password-protecion (if any) is removed
+'   - DeepClean outputs only .xlsm files, which seem the most reliable. I found a bug in .xlsb files that difficult to reconnect OnAct macros (buttons etc)
 '
 '   Instructions (for both):
 '   - Before running: In Excel, enable File > Options > Trust Center > Trust Center Settings… > Macro Settings > [] Trust access to the VBA project object model.
@@ -73,73 +75,68 @@ End Sub
 Private Function PickOpenVBProject(ByVal vbeObj As Object) As Object
     'Tiny project picker (open projects only)
     'Called by VBA_Cleaner
-    Dim i&
+    Dim i&, mini&, maxi&, badi&
     Dim info$
-    Dim def$
     Dim proj As Object
     Dim choice As Variant
     Dim hostName$
+    Dim wb As Workbook
     
     info = "Open VBA projects:" & vbCrLf & vbCrLf
+    badi = 0
+    maxi = 0
+    mini = vbeObj.VBProjects.Count
     For i = 1 To vbeObj.VBProjects.Count
         Set proj = vbeObj.VBProjects(i)
-        hostName = HostNameForProject(proj)
-        info = info & Format$(i, "00") & ") " & proj.Name
-        If Len(hostName) > 0 Then info = info & "  —  " & hostName
-        info = info & vbCrLf
+        For Each wb In Application.Workbooks
+            If Not (wb Is Nothing) Then
+                If wb.VBProject Is proj Then
+                    hostName = wb.Name
+                    Exit For
+                End If
+            End If
+        Next wb
+        If hostName = ThisWorkbook.Name Then 'avoid VBA-Clean workbook cleaning itself - it would crash
+            badi = i
+        Else
+            If i < mini Then mini = i
+            If maxi < i Then maxi = i
+            info = info & i & ") " & proj.Name
+            If 0 < LenB(hostName) Then info = info & "  —  " & hostName
+            info = info & vbCrLf
+        End If
     Next i
-    
-    info = info & vbCrLf & "Enter index to clean (blank = Active VBProject):"
-    def = ""
-    
+    info = info & vbCrLf & "Which # to clean?  (Enter a number " & mini & "-" & maxi & "):"
+
     choice = Application.InputBox(Prompt:=info, Title:="VBA Cleaner — Project Picker", Type:=1)
     If choice = False Then Exit Function 'cancel
     
     On Error Resume Next
-    If Len(choice & "") = 0 Then
-        Set PickOpenVBProject = vbeObj.ActiveVBProject
-    Else
-        If choice >= 1 And choice <= vbeObj.VBProjects.Count Then Set PickOpenVBProject = vbeObj.VBProjects(choice)
+    If Len(choice & vbNullString) > 0 Then
+        If mini <= choice And choice <= maxi And choice <> badi Then Set PickOpenVBProject = vbeObj.VBProjects(choice)
     End If
     On Error GoTo 0
-    
-    If PickOpenVBProject Is Nothing Then MsgBox "Invalid selection.", vbExclamation
-End Function
-
-Private Function HostNameForProject$(ByVal proj As Object)
-    'Helper function to PickOpenVBProject
-    'Best-effort host name (Excel workbooks)
-    On Error Resume Next
-    Dim wb As Workbook
-    For Each wb In Application.Workbooks
-        If Not (wb Is Nothing) Then
-            If wb.VBProject Is proj Then
-                HostNameForProject = wb.Name
-                Exit Function
-            End If
-        End If
-    Next wb
-    On Error GoTo 0
+    If PickOpenVBProject Is Nothing Then MsgBox "Invalid selection. VBA_Clean has aborted.", vbExclamation
 End Function
 
 Private Sub Clean_VBA_project(ByVal Project As Object)
     'This is the core code for VBA-Cleaner, with late-binding
     'Called by VBA_Cleaner
+    Dim i&
+    Dim totalLines&
+    Dim f$
+    Dim base$
+    Dim codeText$
+    Dim ext$
+    Dim fileExt$
     Dim tempPath$
+    Dim wasEvents As Boolean
+    Dim wasAlerts As Boolean
     Dim exportMap As Object 'Scripting.Dictionary
     Dim comp As Object
     Dim codeMod As Object
-    Dim f$
-    Dim fileExt$
-    Dim i&
-    Dim totalLines&
     Dim appWasUpdating As Boolean
-    Dim wasEvents As Boolean
-    Dim wasAlerts As Boolean
-    Dim base$
-    Dim ext$
-    Dim codeText$
-    
+
     appWasUpdating = Application.ScreenUpdating
     wasEvents = Application.EnableEvents
     wasAlerts = Application.DisplayAlerts
@@ -155,7 +152,7 @@ Private Sub Clean_VBA_project(ByVal Project As Object)
     
     EnsureEmptyFolder tempPath
     Set exportMap = CreateObject("Scripting.Dictionary") 'docName -> exported path
-    
+
     '1) Export every component
     For Each comp In Project.VBComponents
         fileExt = ExportExtensionFor(comp)
@@ -164,7 +161,7 @@ Private Sub Clean_VBA_project(ByVal Project As Object)
         If comp.Type = vbext_ct_Document Then exportMap(comp.Name) = f
         Debug.Print "Export", comp.Name & fileExt
     Next comp
-    
+
     '2) Remove all NON-document components
     For i = Project.VBComponents.Count To 1 Step -1
         Set comp = Project.VBComponents(i)
@@ -173,7 +170,7 @@ Private Sub Clean_VBA_project(ByVal Project As Object)
             Debug.Print "Remove", i
         End If
     Next i
-    
+
     '3) Re-import non-document files (.bas/.cls/.frm/.pag)
     f = Dir$(tempPath & "\*.*")
     Do While LenB(f) <> 0
@@ -187,7 +184,7 @@ Private Sub Clean_VBA_project(ByVal Project As Object)
         End If
         f = Dir$
     Loop
-    
+
     '4) Refresh document modules in-place (clear + AddFromFile)
     For Each comp In Project.VBComponents
         If comp.Type = vbext_ct_Document Then
@@ -202,21 +199,20 @@ Private Sub Clean_VBA_project(ByVal Project As Object)
         End If
     Next comp
 
-    '5) Cleanup temp
-    EnsureFolderDeleted tempPath
-
+    MsgBox "VBA Project '" & Project.Name & "' successfully cleaned.", vbInformation
+    Debug.Print "...Successfully finished"
 quitSub:
     Application.DisplayAlerts = wasAlerts
     Application.EnableEvents = wasEvents
     Application.ScreenUpdating = appWasUpdating
     If Err.Number <> 0 Then
         MsgBox "Error while cleaning '" & Project.Name & "': " & Err.Number & " - " & Err.Description, vbCritical
-        On Error Resume Next
-        EnsureFolderDeleted tempPath
-        On Error GoTo 0
+        'We don't delete the temp files on failure. They might need salvaging.
+        Debug.Print "Temp files are in " & tempPath
     Else
-        MsgBox "Project '" & Project.Name & "' cleaned and rebuilt.", vbInformation
-        Debug.Print "...Successfully finished"
+        On Error Resume Next
+        EnsureFolderDeleted tempPath 'clear temp files
+        On Error GoTo 0
     End If
 End Sub
 
@@ -251,39 +247,45 @@ Private Function PickWorkbookForDeepClean() As Workbook
     '- Shows index, workbook name, project name, and lock state
     '- Blank/Cancel safely exits
     '- Blank input = ActiveWorkbook
-    Dim i&
+    Dim i&, mini&, maxi&, badi&
     Dim msg$
     Dim choice As Variant
     Dim wb As Workbook
     Dim projName$
     Dim lockTxt$
 
-    If Application.Workbooks.Count = 0 Then
+    msg = "Open workbooks:" & vbCrLf & vbCrLf
+    badi = 0
+    maxi = 0
+    mini = Application.Workbooks.Count
+    For i = 1 To Application.Workbooks.Count
+        Set wb = Application.Workbooks(i)
+        If wb Is ThisWorkbook Then 'avoid VBA-Cleaner workbook cleaning itself - it would crash
+            badi = i
+        Else
+            If i < mini Then mini = i
+            If maxi < i Then maxi = i
+            projName = SafeProjName(wb)
+            lockTxt = ProjLockText(wb)
+            msg = msg & i & ") " & wb.Name & vbCrLf
+        End If
+    Next i
+
+    If maxi = 0 Then
         MsgBox "No workbooks are open.", vbInformation
         Exit Function
     End If
-    
-    msg = "Open Workbooks (for Deep Clean):" & vbCrLf & vbCrLf
-    For i = 1 To Application.Workbooks.Count
-        Set wb = Application.Workbooks(i)
-        projName = SafeProjName(wb)
-        lockTxt = ProjLockText(wb)
-        msg = msg & Format$(i, "00") & ") " & wb.Name & vbCrLf
-    Next i
-    
-    msg = msg & vbCrLf & "Enter index to deep-clean (blank = ActiveWorkbook):"
+
+    msg = msg & vbCrLf & "Which # to deep-clean?  (Enter a number " & mini & "-" & maxi & "):"
     choice = Application.InputBox(Prompt:=msg, Title:="DeepClean — Workbook Picker", Type:=1)
     If choice = False Then Exit Function 'Cancel
-    
+
     On Error Resume Next
-    If Len(choice & "") = 0 Then
-        Set PickWorkbookForDeepClean = Application.ActiveWorkbook
-    Else
-        If choice >= 1 And choice <= Application.Workbooks.Count Then Set PickWorkbookForDeepClean = Application.Workbooks(CLng(choice))
+    If 0 < Len(choice & vbNullString) Then
+        If mini <= choice And choice <= maxi And choice <> badi Then Set PickWorkbookForDeepClean = Application.Workbooks(CLng(choice))
     End If
     On Error GoTo 0
-    
-    If PickWorkbookForDeepClean Is Nothing Then MsgBox "Invalid selection.", vbExclamation
+    If PickWorkbookForDeepClean Is Nothing Then MsgBox "Invalid selection. VBA_DeepClean has aborted", vbInformation
 End Function
 
 Private Function SafeProjName$(ByVal wb As Workbook)
@@ -299,56 +301,70 @@ Private Function ProjLockText$(ByVal wb As Workbook)
     'Lock status text (helps you unlock before running)
     'Helper function to PickWorkbookForDeepClean
     On Error Resume Next
-    If wb.VBProject.Protection = vbext_pp_locked Then ProjLockText = "   [LOCKED]" Else ProjLockText = ""
+    If wb.VBProject.Protection = vbext_pp_locked Then ProjLockText = "   [LOCKED]" Else ProjLockText = vbNullString
     On Error GoTo 0
 End Function
 
-Public Sub DeepClean_Workbook(Optional ByVal SrcWb As Workbook)
+Private Sub DeepClean_Workbook(Optional ByVal SrcWb As Workbook)
     'This is the core code for VBA-DeepClean, with late-binding
-    Dim src As Workbook
-    Dim dst As Workbook
-    Dim wbk As Workbook
-    Dim projSrc As Object
-    Dim projDst As Object
-    Dim tempPath$
-    Dim comp As Object
-    Dim codeMod As Object
-    Dim f$
-    Dim ext$
-    Dim base$
-    Dim ws As Worksheet
-    Dim ch As Chart
     Dim i&
-    Dim firstDone As Boolean
-    Dim tabk As Variant
+    Dim k&
+    Dim base$
     Dim docText$
     Dim destCodeName$
-    Dim tabToFile As Object
-    Dim tabToKind As Object
+    Dim ext$ 'file extension
+    Dim f$ 'filename
+    Dim projName$ 'VBProject name to restore
+    Dim refs$() 'VBA project references
+    Dim tempPath$
     Dim twText$
     Dim flag As Boolean
-    
-    'Mapping from TAB NAME -> (exported .cls file path, kind "WS"/"CH")
-    Set tabToFile = CreateObject("Scripting.Dictionary")
-    Set tabToKind = CreateObject("Scripting.Dictionary")
-    
-    If SrcWb Is Nothing Then Set src = ThisWorkbook Else Set src = SrcWb
-    Set projSrc = src.VBProject
-    
+    Dim firstDone As Boolean
+    Dim tabk As Variant
+    Dim shp As Shape 'e.g. macro button
+    Dim ch As Chart
+    Dim ws As Worksheet 'temp worksheet
+    Dim src As Workbook 'source workbook
+    Dim dst As Workbook 'destination workbook (cleaned)
+    Dim wbk As Workbook 'temp workbook
+    Dim projSrc As Object 'source VBAProject
+    Dim projDst As Object 'destination VBAProject
+    Dim comp As Object
+    Dim codeMod As Object
+    Dim tabToFile As Object
+    Dim tabToKind As Object
+
+    On Error GoTo quitSub
     Application.ScreenUpdating = False
     Application.EnableEvents = False
     Application.DisplayAlerts = False
-    On Error GoTo quitSub
+
+    'Mapping from TAB NAME -> (exported .cls file path, kind "WS"/"CH")
+    Set tabToFile = CreateObject("Scripting.Dictionary")
+    Set tabToKind = CreateObject("Scripting.Dictionary")
+
+    '1) Remember references, so that they can be restored later
+    If SrcWb Is Nothing Then Set src = ThisWorkbook Else Set src = SrcWb
+    Set projSrc = src.VBProject
     
-    '1) Temp folder + export all components
+    projName = projSrc.Name
+    ReDim refs(projSrc.References.Count, 3)
+    For Each comp In projSrc.References
+        i = i + 1
+        refs(i, 1) = CStr(comp.GUID)
+        refs(i, 2) = CStr(comp.Major)
+        refs(i, 3) = CStr(comp.Minor)
+    Next
+
+    '2) Temp folder + export all components
     tempPath = Environ$("TEMP"): If Len(tempPath) = 0 Then tempPath = CurDir$
     tempPath = tempPath & "\VbaDeepCleanTemp"
     EnsureEmptyFolder tempPath
-    
+
     For Each comp In projSrc.VBComponents
         comp.Export tempPath & "\" & SafeFileName(comp.Name) & ExportExtensionFor(comp)
     Next
-    
+
     'Build TAB NAME -> source exported file mapping (document modules)
     '(Locale-agnostic: use actual sheet/chartsheet names)
     For Each ws In src.Worksheets
@@ -359,8 +375,8 @@ Public Sub DeepClean_Workbook(Optional ByVal SrcWb As Workbook)
         tabToFile(ch.Name) = tempPath & "\" & ch.CodeName & ".cls"
         tabToKind(ch.Name) = "CH"
     Next
-    
-    '2) Create destination by copying the FIRST sheet to a NEW workbook (no placeholder)
+
+    '3) Create destination by copying the FIRST sheet to a NEW workbook (no placeholder)
     firstDone = False
     For Each ws In src.Worksheets
         ws.Copy 'no destination -> creates a new workbook with this sheet as the only sheet
@@ -370,7 +386,7 @@ Public Sub DeepClean_Workbook(Optional ByVal SrcWb As Workbook)
     Next
     'If there were no worksheets, start with a blank and we’ll add charts only
     If Not firstDone Then Set dst = Application.Workbooks.Add(xlWBATWorksheet)
-    
+
     'Copy remaining worksheets (preserves tab names)
     i = 0
     For Each ws In src.Worksheets
@@ -381,11 +397,19 @@ Public Sub DeepClean_Workbook(Optional ByVal SrcWb As Workbook)
     For Each ch In src.Charts
         ch.Copy After:=dst.Sheets(dst.Sheets.Count)
     Next
-        
-    '3) Rebuild VBA in destination (late-bound)
+
+    '4) Rebuild VBA in destination (late-bound)
     Set projDst = dst.VBProject
     If projDst.Protection = vbext_pp_locked Then Err.Raise vbObjectError + 1, , "Destination project is locked."
-    
+    projDst.Name = projName 'reinstate project name
+
+    'Reinstate references
+    For i = 1 To UBound(refs, 1)
+        On Error Resume Next
+        projDst.References.AddFromGuid refs(i, 1), CLng(refs(i, 2)), CLng(refs(i, 3))
+        On Error GoTo quitSub
+    Next
+
     'Import all NON-document components
     f = Dir$(tempPath & "\*.*")
     Do While LenB(f) <> 0
@@ -397,7 +421,7 @@ Public Sub DeepClean_Workbook(Optional ByVal SrcWb As Workbook)
         End If
         f = Dir$
     Loop
-    
+
     'Refresh ThisWorkbook code (strip headers)
     Set comp = Nothing
     On Error Resume Next
@@ -407,16 +431,16 @@ Public Sub DeepClean_Workbook(Optional ByVal SrcWb As Workbook)
         Set codeMod = comp.CodeModule
         If codeMod.CountOfLines > 0 Then codeMod.DeleteLines 1, codeMod.CountOfLines
         f = tempPath & "\ThisWorkbook.cls"
-        If Dir$(f) <> "" Then
+        If Dir$(f) <> vbNullString Then
             twText = LoadCodeBodyFromExport(f)
             If LenB(twText) > 0 Then codeMod.AddFromString twText
         End If
     End If
-    
+
     'Refresh each document module by TAB NAME (locale-safe; ignores CodeName renumbering)
     For Each tabk In tabToFile.Keys
         f = CStr(tabToFile(tabk))
-        If Dir$(f) <> "" Then
+        If Dir$(f) <> vbNullString Then
             'Find destination component by tab name (worksheet or chart)
             destCodeName = DestCodeNameByTab(dst, CStr(tabk), CStr(tabToKind(tabk)))
             If LenB(destCodeName) > 0 Then
@@ -433,18 +457,30 @@ Public Sub DeepClean_Workbook(Optional ByVal SrcWb As Workbook)
             End If
         End If
     Next
-    
-    '4) Save, tidy, close
-    'Save as macro-enabled
-    f = src.path & "\" & Left$(src.Name, InStrRev(src.Name, ".") - 1) & "_DeepCleaned.xlsm"
+
+    'Reconnect all buttons to macros local file instead of link to original file. Finds form controls, shapes, and charts with OnAction
+    For Each ws In dst.Worksheets
+        For Each shp In ws.Shapes
+            RewireShapeOnAction shp, dst.Name
+        Next shp
+    Next ws
+    For Each ch In dst.Charts
+        For Each shp In ch.Shapes
+            RewireShapeOnAction shp, dst.Name
+        Next shp
+    Next ch
+
+    '5) Save, tidy, close
+    i = InStrRev(src.Name, ".")
+    f = Left(src.Name, i - 1) & "_DeepCleaned.xlsm"
     Do
-        tabk = Application.GetSaveAsFilename(InitialFileName:=f, FileFilter:="Macro-Enabled Workbook (*.xlsm), *.xlsm", Title:="Choose where to save the DeepCleaned workbook")
+        tabk = Application.GetSaveAsFilename(f, "Macro-Enabled Workbook (*.xlsm),*.xlsm", , "Choose where to save the DeepCleaned workbook") 'Save as macro-enabled
         If VarType(tabk) = vbBoolean And tabk = False Then GoTo quitSub
         f = CStr(tabk)
         flag = IsLikelyUrl(f)
         If flag Then MsgBox "Cannot save on online folders. Please try again, and select a local file path.", vbExclamation
     Loop Until Not flag
-    'If the target is already open in this Excel instance, close it (no save)
+    'If the target is already open in this Excel instance, close it (no save) so that it can be overwritten
     For Each wbk In Application.Workbooks
         If StrComp(wbk.FullName, f, vbTextCompare) = 0 Then
             wbk.Close SaveChanges:=False
@@ -452,10 +488,10 @@ Public Sub DeepClean_Workbook(Optional ByVal SrcWb As Workbook)
         End If
     Next
     'If a file already exists at path, remove read-only flag and delete it
-    If Dir$(f, vbNormal) <> "" Then
+    If Dir$(f, vbNormal) <> vbNullString Then
         On Error Resume Next
-        SetAttr f, vbNormal       ' clear read-only if set
-        Kill f                    ' delete existing file
+        SetAttr f, vbNormal  'clear read-only if set
+        Kill f               'delete existing file
         On Error GoTo quitSub
     End If
     dst.CheckCompatibility = False
@@ -468,19 +504,21 @@ Public Sub DeepClean_Workbook(Optional ByVal SrcWb As Workbook)
     'We close the new file here because for user to check macro functionality, they have to open it, which triggers events Auto_Open and Workbook_Open
     dst.Saved = True 'Ensure that Excel believes it's saved
     dst.Close SaveChanges:=False 'Close without re-saving (we already saved)
-    EnsureFolderDeleted tempPath
-    
+
+    MsgBox "DeepClean successfully completed:" & vbLf & f, vbInformation
+    Debug.Print "...DeepClean finished"
 quitSub:
     Application.DisplayAlerts = True
     Application.EnableEvents = True
     Application.ScreenUpdating = True
     If Err.Number <> 0 Then
         MsgBox "Deep Clean failed: " & Err.Number & " - " & Err.Description, vbCritical
+        'We don't delete the temp files on failure. They might need salvaging.
+        Debug.Print "Temp files are in " & tempPath
+    Else
         On Error Resume Next
         EnsureFolderDeleted tempPath
         On Error GoTo 0
-    Else
-        MsgBox "Deep Clean complete:" & vbCrLf & f, vbInformation
     End If
 End Sub
 
@@ -520,6 +558,27 @@ Private Function DestCodeNameByTab$(ByVal wb As Workbook, ByVal tabName$, ByVal 
     End If
     On Error GoTo 0
 End Function
+
+Private Sub RewireShapeOnAction(ByVal shp As Shape, ByVal targetWbName$)
+    'Reconnects buttons by renaming links "'Book Name.xlsm'!Module1.Macro1" or "Book.xlsm!Macro1" to "'Book Name_DeepClean.xlsm'!Module1.Macro1" or "Book_DeepClean.xlsm!Macro1".
+    Dim p& 'pointer
+    Dim act$ 'OnAction
+    Dim tail$ 'Macro link tail: Module.Proc or Proc name
+
+    On Error Resume Next
+    act = Trim(shp.OnAction)
+    If LenB(act) = 0 Then Exit Sub
+        
+    p = InStrRev(act, "!")
+    If 0 < p Then tail = Mid$(act, p + 1) Else tail = act
+    If Left$(tail, 1) = "'" And Right$(tail, 1) = "'" Then tail = Mid$(tail, 2, Len(tail) - 2) 'Remove wrapping single quotes (Excel sometimes quotes the whole thing)
+    tail = Trim$(tail)
+    If LenB(tail) = 0 Then Exit Sub
+
+    shp.OnAction = "'" & targetWbName & "'!" & tail 'Always qualify with destination workbook name (safe solution)
+    Debug.Print "#:", targetWbName 'fixo
+    On Error GoTo 0
+End Sub
 
 '=========================================================
 '   Helper code used by both VBA-Cleaner and VBA-DeepClean
@@ -574,7 +633,7 @@ Private Sub EnsureFolderDeleted(ByVal path$)
     On Error Resume Next
     Kill path & "\*.*"
     Kill path & "\*.frx"
-    RmDir path
+    RmDir path 'remove directory
     On Error GoTo 0
 End Sub
 
@@ -592,9 +651,9 @@ Private Function LoadCodeBodyFromExport$(ByVal filePath$)
     Do While Not EOF(f)
         i = i + 1
         Line Input #f, line
-        If i = 1 And LCase(line) Like "version*" Then 'Start of class header?
+        If i = 1 And LCase(line) Like "version*" Then 'Start of class header, e.g VERSION 1.0 CLASS
             inHeaderBlock = True
-        ElseIf inHeaderBlock Then 'Inside header block: skip until a standalone "End"
+        ElseIf inHeaderBlock Then 'Ignore everything inside the header block: skip until it closes with a standalone "END"
             If LCase(line) = "end" Then inHeaderBlock = False
         ElseIf LCase$(line) Like "attribute*" Then
             'Skip Attribute lines (e.g., Attribute VB_Name = ..., VB_PredeclaredId, etc.)
@@ -612,3 +671,10 @@ CleanFail:
     LoadCodeBodyFromExport = vbNullString
 End Function
 
+Private Sub reboot() 'Not called by any code. Can be run manually enable events/screen in case any VBA code crashed
+    With Application
+        Application.DisplayAlerts = True
+        Application.EnableEvents = True
+        Application.ScreenUpdating = True
+    End With
+End Sub

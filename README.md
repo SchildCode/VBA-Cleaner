@@ -1,7 +1,7 @@
 # VBA-Cleaner
 Macro code cleaner for Excel workbooks - Reduce file-bloat and improve portability &amp; reliability.
 
-This is a tiny & free alternative to legacy “CodeCleaner” utilities. It doesn't need installation; it works out-of-the box on 32/64-bit Office, no VBIDE references are required (late binding), handles mixed-locale CodeNames (`Sheet1`/`Ark1`), avoids `VERSION/Attribute` clutter in document modules, and can avoids issues with OneDrive/SharePoint file paths.
+This is a sophisticated but tiny & free alternative to legacy “CodeCleaner” utilities. It doesn't need installation; it works out-of-the box on 32/64-bit Office, no VBIDE references are required (late binding), handles mixed-locale CodeNames (`Sheet1`/`Ark1`), avoids `VERSION/Attribute` clutter in document modules, and can avoids issues with OneDrive/SharePoint file paths.
 
 ## When/why should you "clean" a Visual Basic for Applications (VBA) enabled Microsoft Excel workbook?
 

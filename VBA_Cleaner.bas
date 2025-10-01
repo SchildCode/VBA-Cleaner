@@ -5,7 +5,6 @@ Option Explicit
 '   These are simple 64-bit safe alternatives to tools such as the 32-bit "VBA CodeCleaner" written by Rob Bovery (http://www.appspro.com/Utilities/CodeCleaner.htm), and the commercial tool Ribbon Commander (https://www.spreadsheet1.com/vba-project-code-cleaner-for-access-excel-powerpoint-word.html).
 '   This code is provided as is, with no warranty of any kind.
 '   Author: Peter.Schild@OsloMet.no
-'   Version: 250930
 '
 '   1) VBA-Cleaner
 '   - Use VBA-Cleaner (export/remove/import + clear/add for document modules) often during development. It’s fast and fixes VBA-side issues.
